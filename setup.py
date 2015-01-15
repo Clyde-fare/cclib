@@ -43,8 +43,8 @@ def setup_cclib():
     if 'egg' in sys.argv:
         sys.argv.pop(sys.argv.index('egg'))
         from setuptools import setup
-
-    from distutils.core import setup
+    else:
+        from distutils.core import setup
 
     # The list of packages to be installed.
     cclib_packages = ['cclib', 'cclib.parser', 'cclib.progress', 'cclib.method', 'cclib.bridge']
@@ -63,7 +63,7 @@ def setup_cclib():
         classifiers = classifiers.split("\n"),
         platforms = ["Any."],
         packages = cclib_packages,
-        package_dir = { 'cclib':'src/cclib' },
+        package_dir = { '' : 'src' },
         scripts = ["src/scripts/ccget", "src/scripts/cda"],
     )
 
