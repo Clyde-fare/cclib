@@ -22,7 +22,7 @@ import os
 import random
 import sys
 import zipfile
-
+import copy
 import numpy
 
 from . import utils
@@ -134,7 +134,7 @@ class Logfile(object):
                     logstream=sys.stdout, datatype=ccData, **kwds):
         """Initialise the Logfile object.
 
-        This should be called by a ubclass in its own __init__ method.
+        This should be called by a subclass in its own __init__ method.
 
         Inputs:
             source - a single logfile, a list of logfiles, or input stream
@@ -176,6 +176,9 @@ class Logfile(object):
         # normally be ccData or a subclass of it.
         self.datatype = datatype
 
+        # This will be used to track the current fragment data is being extracted from
+        self.frag_id = 0
+        
         # Change the class used if we want optdone to be a list or if the 'future' option
         # is used, which might have more consequences in the future.
         optdone_as_list = kwds.get("optdone_as_list", False) or kwds.get("future", False)
@@ -198,7 +201,24 @@ class Logfile(object):
 
         # Set the attribute.
         object.__setattr__(self, name, value)
-
+    
+    def get_frag_ids(self, inputfile):
+        """Stub overwritten by child to construct ids for all fragments found in the file to be parsed"""
+        return []
+      
+    def copy(self):
+        return copy.deepcopy(self)
+         
+    def __deepcopy__(self, memo):
+        '''Returns a copy of the parser without the uncopyable logger'''
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k != 'logger':
+                setattr(result, k, copy.deepcopy(v, memo))
+        return result        
+            
     def parse(self, progress=None, fupdate=0.05, cupdate=0.002):
         """Parse the logfile, using the assumed extract method of the child."""
 
@@ -229,22 +249,35 @@ class Logfile(object):
             self.progress.initialize(inputfile.size)
             self.progress.step = 0
         self.fupdate = fupdate
-        self.cupdate = cupdate
+        self.cupdate = cupdate        
 
         # Maybe the sub-class has something to do before parsing.
         self.before_parsing()
 
+        #Construct fragment parsers for any fragments present
+        frag_ids = self.get_frag_ids(inputfile)
+        self.frag_parsers = {frag_id: self.copy() for frag_id in frag_ids}
+    
         # Loop over lines in the file object and call extract().
-        # This is where the actual parsing is done.
+        # This is where the actual parsing is done.    
         for line in inputfile:
-
+    
             self.updateprogress(inputfile, "Unsupported information", cupdate)
+    
+            if self.frag_id:
+                current_parser = self.frag_parsers[self.frag_id]
+                current_parser.extract(inputfile, line)
+                self.frag_id = current_parser.frag_id
+            else:
+                # This call should check if the line begins a section of extracted data.
+                # If it does, it parses some lines and sets the relevant attributes (to self).
+                # Any attributes can be freely set and used across calls, however only those
+                #   in data._attrlist will be moved to final data object that is returned.
+                self.extract(inputfile, line)
 
-            # This call should check if the line begins a section of extracted data.
-            # If it does, it parses some lines and sets the relevant attributes (to self).
-            # Any attributes can be freely set and used across calls, however only those
-            #   in data._attrlist will be moved to final data object that is returned.
-            self.extract(inputfile, line)
+                #make sure frag_id is synced across parsers
+                for frag_parser in self.frag_parsers.values():
+                    frag_parser.frag_id = self.frag_id
 
         # Close input file object.
         if not self.isstream:
@@ -266,6 +299,35 @@ class Logfile(object):
         if not hasattr(self, "coreelectrons") and hasattr(self, "natom"):
             self.coreelectrons = numpy.zeros(self.natom, "i")
 
+        #extract data from fragment parsers
+        fragdata = []
+        for frag_id in frag_ids:
+            frag_parser = self.frag_parsers[frag_id]
+            frag_parser.after_parsing()
+    
+            if not hasattr(frag_parser, "atomcoords") and hasattr(frag_parser, "inputcoords"):
+                frag_parser.atomcoords = numpy.array(frag_parser.inputcoords, 'd')
+    
+            if not hasattr(frag_parser, "nmo") and hasattr(frag_parser, "nbasis"):
+                frag_parser.nmo = frag_parser.nbasis
+    
+            if not hasattr(frag_parser, "coreelectrons") and hasattr(frag_parser, "natom"):
+                frag_parser.coreelectrons = numpy.zeros(frag_parser.natom, "i")
+    
+            data = frag_parser.datatype(attributes=frag_parser.__dict__)
+                    
+            data.arrayify()
+    
+            for attr in list(frag_parser.__dict__.keys()):
+                if not attr in _nodelete:
+                    frag_parser.__delattr__(attr)
+    
+            if hasattr(frag_parser, "progress"):
+                frag_parser.progress.update(inputfile.size, "Done")
+            fragdata.append(data)
+
+        self.fragdata = fragdata            
+        
         # Create the data object we want to return. This is normally ccData, but can be changed
         # by passing the datatype argument to the constructor. All supported cclib attributes
         # are copied to this object, but beware that in order to be moved an attribute must be

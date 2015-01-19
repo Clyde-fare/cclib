@@ -39,6 +39,7 @@ class ccData(object):
         etsecs -- singly-excited configurations for electronic transitions (list of lists)
         etsyms -- symmetries of electronic transitions (list of string)
         freeenergy -- sum of electronic and thermal free energies (float, hartree/particle)
+        fragdata -- data extracted from fragments
         fonames -- fragment orbital names (list of strings)
         fooverlaps -- fragment orbital overlap matrix (array[2])
         fragnames -- names of fragments (list of strings)
@@ -107,6 +108,7 @@ class ccData(object):
         "fooverlaps":     numpy.ndarray,
         "fragnames":      list,
         "frags":          list,
+        "fragdata":       list,
         'gbasis':         list,
         "geotargets":     numpy.ndarray,
         "geovalues":      numpy.ndarray,

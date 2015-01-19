@@ -61,6 +61,20 @@ class Gaussian(logfileparser.Logfile):
         ans = label.replace("U", "u").replace("G", "g") 
         return ans
 
+    def get_frag_ids(self, inputfile):
+        """Extracts ids for fragments present in the inputfile"""
+        
+        #Assumes fragments are part of an oniom calculation
+        for line in inputfile:
+            if 'oniom(' in line:
+                no_frags = len(line.split(':'))+1
+                inputfile.__init__(inputfile.file)
+                frag_ids = range(1,no_frags+1)
+                return frag_ids
+                
+        inputfile.__init__(inputfile.file)
+        return []
+        
     def before_parsing(self):
 
         # Used to index self.scftargets[].
@@ -75,6 +89,9 @@ class Gaussian(logfileparser.Logfile):
 
         # Flag for identifying ONIOM calculations.
         self.oniom = False
+        
+        # Flag for identifying fragment data is being extracted from
+        self.frag_id = 0
 
     def after_parsing(self):
 
@@ -134,6 +151,13 @@ class Gaussian(logfileparser.Logfile):
         #
         # Note, however, that currently we only parse information for the whole system
         # or supermolecule as Gaussian calls it.
+        if 'ONIOM: generating point' in line:
+            id = int(line.split('ONIOM: generating point')[1].split()[0])  
+            self.frag_id = id
+            print(id)
+            return
+        
+        
         if line.strip() == "Symbolic Z-matrix:":
 
             self.updateprogress(inputfile, "Symbolic Z-matrix", self.fupdate)
