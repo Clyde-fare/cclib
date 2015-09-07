@@ -8,6 +8,10 @@
 # received a copy of the license along with cclib. You can also access
 # the full license online at http://www.gnu.org/copyleft/lgpl.html.
 
+
+#this version is hacked to extract the heat capacity, rotational constants and electronic spacial extent
+#allowing this cclib to be used to extract the properties reported in "Quantum chemistry structures and properties of 134 kilo molecules"
+
 """Parser for Gaussian output files"""
 
 
@@ -310,6 +314,10 @@ class Gaussian(logfileparser.Logfile):
         # we will want to parse the model systems, too, and that is what nmodels could track.
         if "ONIOM: generating point" in line and line.strip()[-13:] == 'model system.' and getattr(self, 'nmodels', 0) > 0:
             inputfile.file.seek(0,2)
+
+        # Rotational constants (GHZ):    157.7117991    157.7099779    157.7070030
+        if "Rotational constants (GHZ)" in line:
+            self.set_attribute('rotconstants', [float(rc) for rc in line.split()[3:]])
 
         # With the gfinput keyword, the atomic basis set functios are:
         #
@@ -1376,6 +1384,12 @@ class Gaussian(logfileparser.Logfile):
                     charges.append(float(nline.split()[2]))
                 self.atomcharges["natural"] = charges
 
+        #Extract electronic spacial extent
+        #Electronic spatial extent (au):  <R**2>=             35.3641
+
+        if 'Electronic spatial extent (au):  <R**2>' in line:
+            self.set_attribute('ese', float(line.split()[5]))   
+        
         #Extract Thermochemistry
         #Temperature   298.150 Kelvin.  Pressure   1.00000 Atm.
         #Zero-point correction=                           0.342233 (Hartree/
@@ -1388,11 +1402,24 @@ class Gaussian(logfileparser.Logfile):
         #Sum of electronic and thermal Free Energies=         -563.689037
         if "Sum of electronic and thermal Enthalpies" in line:
             self.set_attribute('enthalpy', float(line.split()[6]))
-        if "Sum of electronic and thermal Free Energies=" in line:
-            self.set_attribute('freenergy', float(line.split()[7]))
+        if "Sum of electronic and thermal Free Energies" in line:
+            self.set_attribute('freeenergy', float(line.split()[7]))
         if line[1:12] == "Temperature":
             self.set_attribute('temperature', float(line.split()[1]))
 
+        #Extract heat capacity
+        #                    E (Thermal)             CV                S
+        #                      KCal/Mol        Cal/Mol-Kelvin    Cal/Mol-Kelvin
+        # Total                   29.881              6.469             49.417
+        # Electronic               0.000              0.000              0.000
+        # Translational            0.889              2.981             34.261
+        # Rotational               0.889              2.981             15.068
+        # Vibrational             28.103              0.508              0.087
+ 
+        if 'E (Thermal)             CV                S' in line:
+            line = next(inputfile)
+            line = next(inputfile)
+            self.set_attribute('heatcapacity', float(line.split()[2]))           
 
 if __name__ == "__main__":
     import doctest, gaussianparser, sys

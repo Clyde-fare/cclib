@@ -10,6 +10,9 @@
 # received a copy of the license along with cclib. You can also access
 # the full license online at http://www.gnu.org/copyleft/lgpl.html.
 
+#this version is hacked to extract the heat capacity, rotational constants and electronic spacial extent
+#allowing this cclib to be used to extract the properties reported in "Quantum chemistry structures and properties of 134 $
+
 """Classes and tools for storing and handling parsed data"""
 
 
@@ -33,6 +36,7 @@ class ccData(object):
         coreelectrons -- number of core electrons in atom pseudopotentials (array[1])
         enthalpy -- sum of electronic and thermal enthalpies (float, hartree/particle)
         entropy -- entropy (float, hartree/particle)
+        ese -- electronic spacial extent (float, angstrom)
         etenergies -- energies of electronic transitions (array[1], 1/cm)
         etoscs -- oscillator strengths of electronic transitions (array[1])
         etrotats -- rotatory strengths of electronic transitions (array[1], ??)
@@ -47,6 +51,7 @@ class ccData(object):
         geotargets -- targets for convergence of geometry optimization (array[1])
         geovalues -- current values for convergence of geometry optmization (array[1])
         grads -- current values of forces (gradients) in geometry optimization (array[3])
+        heatcapacity -- CV (float, cal/mol-Kelvin
         hessian -- elements of the force constant matrix (array[1])
         homos -- molecular orbital indices of HOMO(s) (array[1])
         mocoeffs -- molecular orbital coefficients (list of arrays[2])
@@ -62,6 +67,7 @@ class ccData(object):
         nooccnos -- natural orbital occupation numbers (array[1])
         optdone -- flags whether an optimization has converged (Boolean)
         oniomenergies -- energies of components involved in an oniom calculation (list)
+        rotconstants - rotational constants (list, ghz)
         scancoords -- geometries of each scan step (array[3], angstroms)
         scanenergies -- energies of potential energy surface (list)
         scannames -- names of varaibles scanned (list of strings)
@@ -97,6 +103,7 @@ class ccData(object):
         "coreelectrons":  numpy.ndarray,
         "enthalpy":       float,
         "entropy":        float,
+        "ese":            float,
         "etenergies":     numpy.ndarray,
         "etoscs":         numpy.ndarray,
         "etrotats":       numpy.ndarray,
@@ -111,6 +118,7 @@ class ccData(object):
         "geotargets":     numpy.ndarray,
         "geovalues":      numpy.ndarray,
         "grads":          numpy.ndarray,
+        "heatcapacity":   float,
         "hessian":        numpy.ndarray,
         "homos":          numpy.ndarray,
         "mocoeffs":       list,
@@ -126,6 +134,7 @@ class ccData(object):
         "nooccnos":       numpy.ndarray,
         "oniomenergies":  list,
         "optdone":        bool,
+        "rotconstants":   list,
         "scancoords":     numpy.ndarray,
         "scanenergies":   list,
         "scannames":      list,
