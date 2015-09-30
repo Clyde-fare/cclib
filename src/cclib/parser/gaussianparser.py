@@ -293,7 +293,10 @@ class Gaussian(logfileparser.Logfile):
             while list(set(line.strip())) != ["-"]:
                 broken = line.split()
                 atomnos.append(int(broken[1]))
-                atomcoords.append(list(map(float, broken[-3:])))
+                try:
+                    atomcoords.append(list(map(float, broken[-3:])))
+                except ValueError:
+                    atomcoords.append([])
                 line = next(inputfile)
             self.atomcoords.append(atomcoords)
 
